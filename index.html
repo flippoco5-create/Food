@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Меню на день</title>
+<style>
+:root {
+  --bg: #f4f6f9; --card: #ffffff; --txt: #2c3e50; --accent: #3498db; 
+  --green: #2ecc71; --red: #e74c3c; --border: #e1e8ed; --gold: #f39c12;
+  --shadow: rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+.zone { flex: 1; position: relative; border-bottom: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; transition: opacity 0.3s; }
+.zone:last-child { border-bottom: none; border-top: 2px solid var(--border); }
+.zone-header { position: absolute; top: 5px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 20;}
+.zone-title { font-size: 0.75rem; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
+.meal-step { font-size: 0.75rem; color: var(--accent); font-weight: bold; background: #e3f2fd; padding: 2px 8px; border-radius: 10px;}
+.card-container { position: relative; width: 90%; max-width: 300px; height: 75%; display: flex; align-items: center; justify-content: center; margin-top: 10px; margin-bottom: 5px;}
+.card { position: absolute; width: 100%; height: 100%; background: var(--card); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px var(--shadow); display: flex; flex-direction: column; transition: transform 0.1s; touch-action: none; border: 1px solid var(--border); }
+.card img { width: 100%; height: 55%; object-fit: cover; pointer-events: none; }
+.card-info { padding: 8px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.card-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; line-height: 1.1; }
+.card-meta { font-size: 0.65rem; color: #7f8c8d; }
+.stamp { position: absolute; top: 20px; padding: 8px 16px; border: 4px solid; border-radius: 10px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; opacity: 0; transform: rotate(-20deg); pointer-events: none; }
+.stamp.yes { right: 20px; color: var(--green); border-color: var(--green); transform: rotate(20deg); }
+.stamp.no { left: 20px; color: var(--red); border-color: var(--red); }
+.controls { position: absolute; bottom: 10px; display: flex; gap: 30px; z-index: 10; width: 100%; justify-content: center;}
+.btn-icon { width: 50px; height: 50px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); font-size: 1.3rem; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--txt); box-shadow: 0 2px 5px var(--shadow); }
+.btn-icon:active { background: var(--border); }
+.btn-red:active { border-color: var(--red); color: var(--red); }
+.btn-green:active { border-color: var(--green); color: var(--green); }
+.overlay-done { position: absolute; inset: 0; background: rgba(244, 246, 249, 0.95); backdrop-filter: blur(3px); z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+.overlay-done h2 { color: var(--accent); margin-bottom: 10px; font-size: 1.3rem; }
+.overlay-done p { color: #7f8c8d; font-size: 0.9rem; }
+#loading { position: absolute; inset: 0; background: var(--bg); z-index: 100; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; font-size: 1.1rem; text-align: center; padding: 20px;}
+.spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+#result-screen { position: absolute; inset: 0; background: var(--bg); z-index: 200; display: none; flex-direction: column; padding: 20px; overflow-y: auto; }
+.recipe-block { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+.recipe-title { font-size: 1.05rem; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
+.recipe-ing { font-size: 0.85rem; color: #34495e; margin-bottom: 10px; }
+.recipe-steps { font-size: 0.85rem; color: #7f8c8d; padding-left: 15px; }
+.btn-close { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: 10px; cursor: pointer; width: 100%; max-width: 300px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div>Загрузка меню...</div>
+
+<div class="zone" id="zone-guy">
+  <div class="zone-header">
+    <div class="zone-title">👨 Парень</div>
+    <div class="meal-step" id="step-guy">Завтрак</div>
+  </div>
+  <div class="card-container" id="stack-guy"></div>
+  <div class="controls" id="controls-guy">
+    <button class="btn-icon btn-red" onclick="swipe('guy', false)">✖</button>
+    <button class="btn-icon btn-green" onclick="swipe('guy', true)">✔</button>
+  </div>
+  <div class="overlay-done" id="overlay-guy">
+    <h2>Выбор завершен</h2>
+    <p>Ждем вторую половинку...</p>
+  </div>
+</div>
+
+<div class="zone" id="zone-girl">
+  <div class="zone-header">
+    <div class="zone-title">👩 Девушка</div>
+    <div class="meal-step" id="step-girl">Завтрак</div>
+  </div>
+  <div class="card-container" id="stack-girl"></div>
+  <div class="controls" id="controls-girl">
+    <button class="btn-icon btn-red" onclick="swipe('girl', false)">✖</button>
+    <button class="btn-icon btn-green" onclick="swipe('girl', true)">✔</button>
+  </div>
+  <div class="overlay-done" id="overlay-girl">
+    <h2>Выбор завершен</h2>
+    <p>Ждем вторую половинку...</p>
+  </div>
+</div>
+
+<div id="result-screen">
+  <h2 style="text-align:center;margin-bottom:15px;color:var(--gold)">Меню на день</h2>
+  <div id="final-menu" style="flex:1; overflow-y:auto;"></div>
+  <button class="btn-close" onclick="downloadMenu()" style="background:var(--green); margin-bottom:10px;">💾 Скачать меню в файл</button>
+  <button class="btn-close" onclick="localStorage.removeItem('foodData'); location.reload()">Начать заново</button>
+</div>
+
+<script>
+const API_BASE = 'https://www.themealdb.com/api/json/v1/1/';
+const TRANSLATE_API = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=';
+
+const SCHEDULE = ['Завтрак', 'Перекус 1', 'Обед', 'Перекус 2', 'Ужин', 'Перекус 3 (на ночь)'];
+
+let state = {
+  guy: { step: 0, approved: [], queue: [], isDone: false },
+  girl: { step: 0, approved: [], queue: [], isDone: false }
+};
+
+async function translate(text) {
+  if (!text) return '';
+  try {
+    const res = await fetch(TRANSLATE_API + encodeURIComponent(text));
+    const data = await res.json();
+    return data[0].map(item => item[0]).join('');
+  } catch (e) { return text; } 
+}
+
+async function loadMeals() {
+  try {
+    // Завтраки - легкие
+    const breakfastCats = ['Side', 'Starter', 'Dessert']; 
+    // Основные блюда - мясо, курица, паста, и немного рыбы
+    const mainCats = ['Chicken', 'Beef', 'Pasta', 'Lamb', 'Vegetarian', 'Seafood']; 
+    // Перекусы
+    const snackCats = ['Dessert', 'Starter', 'Side'];
+
+    let breakfastPool = [], mainPool = [], snackPool = [];
+    
+    for (const cat of breakfastCats) {
+      const res = await fetch(API_BASE + 'filter.php?c=' + cat);
+      const data = await res.json();
+      if (data.meals) breakfastPool = breakfastPool.concat(data.meals.sort(() => 0.5 - Math.random()).slice(0, 10));
+    }
+    for (const cat of mainCats) {
+      const res = await fetch(API_BASE + 'filter.php?c=' + cat);
+      const data = await res.json();
+      if (data.meals) mainPool = mainPool.concat(data.meals.sort(() => 0.5 - Math.random()).slice(0, 10));
+    }
+    for (const cat of snackCats) {
+      const res = await fetch(API_BASE + 'filter.php?c=' + cat);
+      const data = await res.json();
+      if (data.meals) snackPool = snackPool.concat(data.meals.sort(() => 0.5 - Math.random()).slice(0, 10));
+    }
+    
+    breakfastPool = breakfastPool.sort(() => 0.5 - Math.random());
+    mainPool = mainPool.sort(() => 0.5 - Math.random());
+    snackPool = snackPool.sort(() => 0.5 - Math.random());
+
+    const fetchDetails = async (m) => {
+      const detailRes = await fetch(API_BASE + 'lookup.php?i=' + m.idMeal);
+      const detailData = await detailRes.json();
+      const d = detailData.meals[0];
+      
+      const nameRu = await translate(d.strMeal);
+      const instructionsRu = await translate(d.strInstructions);
+      
+      let ingredientsRaw = [];
+      for (let i = 1; i <= 20; i++) {
+        if (d['strIngredient' + i] && d['strIngredient' + i].trim() !== "") {
+          ingredientsRaw.push({ ing: d['strIngredient' + i], measure: d['strMeasure' + i] || '' });
+        }
+      }
+      
+      const ingString = ingredientsRaw.map(x => x.ing).join(', ');
+      const ingTranslatedString = await translate(ingString);
+      const ingTranslated = ingTranslatedString.split(',').map(s => s.trim());
+      
+      const finalIngredients = ingredientsRaw.map((item, idx) => ({
+        ing: ingTranslated[idx] || item.ing,
+        measure: item.measure
+      }));
+
+      return { id: d.idMeal, name: nameRu, img: d.strMealThumb, category: d.strCategory, instructions: instructionsRu, ingredients: finalIngredients };
+    };
+
+    const loadBatch = async (arr) => {
+      const res = [];
+      for (let m of arr) res.push(await fetchDetails(m));
+      return res;
+    };
+
+    const guyQueue = [
+      ...(await loadBatch(breakfastPool.slice(0, 3))),
+      ...(await loadBatch(snackPool.slice(0, 3))),
+      ...(await loadBatch(mainPool.slice(0, 3))),
+      ...(await loadBatch(snackPool.slice(3, 6))),
+      ...(await loadBatch(mainPool.slice(3, 6))),
+      ...(await loadBatch(snackPool.slice(6, 9)))
+    ];
+
+    const girlQueue = [
+      ...(await loadBatch(breakfastPool.slice(3, 6))),
+      ...(await loadBatch(snackPool.slice(9, 12))),
+      ...(await loadBatch(mainPool.slice(6, 9))),
+      ...(await loadBatch(snackPool.slice(12, 15))),
+      ...(await loadBatch(mainPool.slice(9, 12))),
+      ...(await loadBatch(snackPool.slice(15, 18)))
+    ];
+    
+    state.guy.queue = guyQueue;
+    state.girl.queue = girlQueue;
+    
+    document.getElementById('loading').style.display = 'none';
+    renderCards('guy');
+    renderCards('girl');
+  } catch (e) {
+    document.getElementById('loading').innerHTML = 'Ошибка загрузки. Проверьте интернет.';
+    console.error(e);
+  }
+}
+
+function renderCards(who) {
+  const container = document.getElementById('stack-' + who);
+  container.innerHTML = '';
+  
+  if (state[who].isDone) return;
+
+  document.getElementById('step-' + who).innerText = SCHEDULE[state[who].step] || 'Готово';
+
+  const queue = state[who].queue;
+  if (queue.length === 0) {
+    container.innerHTML = '<div style="color:#7f8c8d;font-size:0.9rem;text-align:center">Варианты закончились</div>';
+    return;
+  }
+
+  const slice = queue.slice(0, 2).reverse();
+  
+  slice.forEach((meal, index) => {
+    const isTop = index === slice.length - 1;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.zIndex = isTop ? 10 : 5;
+    if (!isTop) card.style.transform = 'scale(0.95) translateY(10px)';
+    
+    card.innerHTML = `
+      <img src="${meal.img}" alt="food">
+      <div class="card-info">
+        <div class="card-title">${meal.name}</div>
+        <div class="card-meta">${meal.category} · ${meal.ingredients.length} ингр.</div>
+      </div>
+      <div class="stamp yes">БЕРУ</div>
+      <div class="stamp no">ПАС</div>
+    `;
+    
+    if (isTop) attachSwipeLogic(card, who);
+    container.appendChild(card);
+  });
+}
+
+function attachSwipeLogic(card, who) {
+  let startX = 0, currentX = 0, isDragging = false;
+  const stampYes = card.querySelector('.stamp.yes');
+  const stampNo = card.querySelector('.stamp.no');
+
+  card.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+    card.style.transition = 'none';
+  });
+
+  card.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    currentX = e.touches[0].clientX - startX;
+    card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.1}deg)`;
+    
+    if (currentX > 50) { stampYes.style.opacity = 1; stampNo.style.opacity = 0; }
+    else if (currentX < -50) { stampNo.style.opacity = 1; stampYes.style.opacity = 0; }
+    else { stampYes.style.opacity = 0; stampNo.style.opacity = 0; }
+  });
+
+  card.addEventListener('touchend', () => {
+    isDragging = false;
+    card.style.transition = 'transform 0.3s';
+    if (currentX > 80) swipe(who, true);
+    else if (currentX < -80) swipe(who, false);
+    else { 
+      card.style.transform = 'translateX(0) rotate(0)'; 
+      stampYes.style.opacity = 0; stampNo.style.opacity = 0;
+    }
+  });
+}
+
+function swipe(who, isYes) {
+  if (state[who].isDone) return;
+
+  const topCard = document.querySelector('#stack-' + who + ' .card:last-child');
+  if (!topCard) return;
+  
+  topCard.style.transition = 'transform 0.4s ease-out';
+  topCard.style.transform = `translateX(${isYes ? 500 : -500}px) rotate(${isYes ? 30 : -30}deg)`;
+  
+  if (isYes) {
+    const meal = state[who].queue[0];
+    meal.mealTime = SCHEDULE[state[who].step];
+    state[who].approved.push(meal);
+  }
+  
+  setTimeout(() => {
+    state[who].queue.shift();
+    state[who].step++;
+    renderCards(who);
+    checkSideDone(who);
+  }, 300);
+}
+
+function checkSideDone(who) {
+  if (state[who].approved.length >= 6) {
+    state[who].isDone = true;
+    
+    document.getElementById('stack-' + who).innerHTML = '';
+    document.getElementById('controls-' + who).style.display = 'none';
+    document.getElementById('overlay-' + who).style.display = 'flex';
+    document.getElementById('zone-' + who).style.opacity = '0.5';
+    
+    localStorage.setItem('foodData', JSON.stringify(state));
+
+    if (state.guy.isDone && state.girl.isDone) {
+      showResult();
+    }
+  }
+}
+
+async function showResult() {
+  const resultScreen = document.getElementById('result-screen');
+  const menuContainer = document.getElementById('final-menu');
+  resultScreen.style.display = 'flex';
+  menuContainer.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner" style="margin:0 auto"></div><br>Собираем меню...</div>';
+
+  const allPicks = [...state.guy.approved, ...state.girl.approved];
+  const shoppingList = {};
+  allPicks.forEach(meal => {
+    meal.ingredients.forEach(item => {
+      const ingName = item.ing.toLowerCase();
+      if (!shoppingList[ingName]) shoppingList[ingName] = item.measure ? [item.measure] : [];
+      else if (item.measure) shoppingList[ingName].push(item.measure);
+    });
+  });
+
+  let html = '<h3 style="color:var(--accent);margin:10px 0 15px;">📋 Список покупок (на двоих)</h3>';
+  html += '<ul style="font-size:0.85rem;color:#34495e;margin-bottom:20px;padding-left:20px;columns:2;column-gap:15px;">';
+  for (const [ing, measures] of Object.entries(shoppingList)) {
+    const cleanIng = ing.charAt(0).toUpperCase() + ing.slice(1);
+    const measureStr = measures.length > 0 ? ` (${measures.join(' + ')})` : '';
+    html += `<li style="break-inside:avoid;margin-bottom:4px;">${cleanIng}${measureStr}</li>`;
+  }
+  html += '</ul>';
+
+  html += '<h3 style="color:var(--accent);margin:10px 0 15px;">🍳 Расписание на день</h3>';
+  const renderPerson = (personData, personName) => {
+    let pHTML = `<h4 style="margin:10px 0;color:var(--txt)">${personName}</h4>`;
+    personData.forEach((meal) => {
+      pHTML += `
+        <div class="recipe-block">
+          <div class="recipe-title">${meal.mealTime}: ${meal.name}</div>
+          <div class="recipe-ing"><b>Ингредиенты:</b><br>${meal.ingredients.map(i => `• ${i.ing} ${i.measure}`).join('<br>')}</div>
+          <div class="recipe-steps"><b>Приготовление:</b><br>${meal.instructions.replace(/\n/g, '<br>')}</div>
+        </div>
+      `;
+    });
+    return pHTML;
+  };
+
+  html += renderPerson(state.guy.approved, '👨 Меню парня');
+  html += renderPerson(state.girl.approved, '👩 Меню девушки');
+  menuContainer.innerHTML = html;
+}
+
+function downloadMenu() {
+  let text = "=== МЕНЮ НА ДЕНЬ ===\n\n";
+  const allPicks = [...state.guy.approved, ...state.girl.approved];
+  const shoppingList = {};
+  allPicks.forEach(meal => {
+    meal.ingredients.forEach(item => {
+      const ingName = item.ing.toLowerCase();
+      if (!shoppingList[ingName]) shoppingList[ingName] = item.measure ? [item.measure] : [];
+      else if (item.measure) shoppingList[ingName].push(item.measure);
+    });
+  });
+  
+  text += "--- СПИСОК ПОКУПОК ---\n";
+  for (const [ing, measures] of Object.entries(shoppingList)) {
+    text += `- ${ing} ${measures.length > 0 ? '(' + measures.join(' + ') + ')' : ''}\n`;
+  }
+  
+  text += "\n\n--- РЕЦЕПТЫ ПАРНЯ ---\n";
+  state.guy.approved.forEach((meal) => {
+    text += `\n[${meal.mealTime}] ${meal.name}\nИнгредиенты:\n${meal.ingredients.map(i => `- ${i.ing} ${i.measure}`).join('\n')}\nПриготовление:\n${meal.instructions}\n-----------------------------------\n`;
+  });
+
+  text += "\n\n--- РЕЦЕПТЫ ДЕВУШКИ ---\n";
+  state.girl.approved.forEach((meal) => {
+    text += `\n[${meal.mealTime}] ${meal.name}\nИнгредиенты:\n${meal.ingredients.map(i => `- ${i.ing} ${i.measure}`).join('\n')}\nПриготовление:\n${meal.instructions}\n-----------------------------------\n`;
+  });
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Меню_на_день.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+const originalSwipe = swipe;
+swipe = function(who, isYes) {
+  originalSwipe(who, isYes);
+  setTimeout(() => {
+    localStorage.setItem('foodData', JSON.stringify(state));
+  }, 500);
+};
+
+if (localStorage.getItem('foodData')) {
+  state = JSON.parse(localStorage.getItem('foodData'));
+  document.getElementById('loading').style.display = 'none';
+  
+  if (state.guy.isDone) {
+    document.getElementById('stack-guy').innerHTML = '';
+    document.getElementById('controls-guy').style.display = 'none';
+    document.getElementById('overlay-guy').style.display = 'flex';
+    document.getElementById('zone-guy').style.opacity = '0.5';
+  } else { renderCards('guy'); }
+  
+  if (state.girl.isDone) {
+    document.getElementById('stack-girl').innerHTML = '';
+    document.getElementById('controls-girl').style.display = 'none';
+    document.getElementById('overlay-girl').style.display = 'flex';
+    document.getElementById('zone-girl').style.opacity = '0.5';
+  } else { renderCards('girl'); }
+  
+  if (state.guy.isDone && state.girl.isDone) {
+    showResult();
+  }
+} else {
+  loadMeals();
+}
+</script>
+</body>
+</html>
