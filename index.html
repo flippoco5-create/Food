@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Меню на день</title>
+<style>
+:root {
+  --bg: #f4f6f9; --card: #ffffff; --txt: #2c3e50; --accent: #3498db; 
+  --green: #2ecc71; --red: #e74c3c; --border: #e1e8ed; --gold: #f39c12;
+  --shadow: rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+.zone { flex: 1; position: relative; border-bottom: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; transition: opacity 0.3s; }
+.zone:last-child { border-bottom: none; border-top: 2px solid var(--border); }
+.zone-header { position: absolute; top: 5px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 20;}
+.zone-title { font-size: 0.75rem; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
+.meal-step { font-size: 0.75rem; color: var(--accent); font-weight: bold; background: #e3f2fd; padding: 2px 8px; border-radius: 10px;}
+
+.card-container { position: relative; width: 90%; max-width: 300px; height: 75%; display: flex; align-items: center; justify-content: center; margin-top: 10px; margin-bottom: 5px;}
+.card { position: absolute; width: 100%; height: 100%; background: var(--card); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px var(--shadow); display: flex; flex-direction: column; transition: transform 0.1s; touch-action: none; border: 1px solid var(--border); }
+.card img { width: 100%; height: 65%; object-fit: cover; pointer-events: none; }
+.card-info { padding: 8px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; background: #fff;}
+.card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 2px; line-height: 1.1; }
+.card-meta { font-size: 0.7rem; color: #7f8c8d; }
+.stamp { position: absolute; top: 20px; padding: 8px 16px; border: 4px solid; border-radius: 10px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; opacity: 0; transform: rotate(-20deg); pointer-events: none; z-index: 30;}
+.stamp.yes { right: 20px; color: var(--green); border-color: var(--green); transform: rotate(20deg); }
+.stamp.no { left: 20px; color: var(--red); border-color: var(--red); }
+.controls { position: absolute; bottom: 10px; display: flex; gap: 30px; z-index: 10; width: 100%; justify-content: center;}
+.btn-icon { width: 50px; height: 50px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); font-size: 1.3rem; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--txt); box-shadow: 0 2px 5px var(--shadow); }
+.btn-icon:active { background: var(--border); }
+.btn-red:active { border-color: var(--red); color: var(--red); }
+.btn-green:active { border-color: var(--green); color: var(--green); }
+.overlay-done { position: absolute; inset: 0; background: rgba(244, 246, 249, 0.95); backdrop-filter: blur(3px); z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+.overlay-done h2 { color: var(--accent); margin-bottom: 10px; font-size: 1.3rem; }
+.overlay-done p { color: #7f8c8d; font-size: 0.9rem; }
+#result-screen { position: absolute; inset: 0; background: var(--bg); z-index: 200; display: none; flex-direction: column; padding: 20px; overflow-y: auto; }
+.recipe-block { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+.recipe-title { font-size: 1.05rem; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
+.recipe-ing { font-size: 0.85rem; color: #34495e; margin-bottom: 10px; }
+.recipe-steps { font-size: 0.85rem; color: #7f8c8d; padding-left: 15px; }
+.btn-close { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: 10px; cursor: pointer; width: 100%; max-width: 300px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<div class="zone" id="zone-guy">
+  <div class="zone-header">
+    <div class="zone-title">👨 Парень</div>
+    <div class="meal-step" id="step-guy">Завтрак</div>
+  </div>
+  <div class="card-container" id="stack-guy"></div>
+  <div class="controls" id="controls-guy">
+    <button class="btn-icon btn-red" onclick="swipe('guy', false)">✖</button>
+    <button class="btn-icon btn-green" onclick="swipe('guy', true)">✔</button>
+  </div>
+  <div class="overlay-done" id="overlay-guy">
+    <h2>Выбор завершен</h2>
+    <p>Ждем вторую половинку...</p>
+  </div>
+</div>
+
+<div class="zone" id="zone-girl">
+  <div class="zone-header">
+    <div class="zone-title">👩 Девушка</div>
+    <div class="meal-step" id="step-girl">Завтрак</div>
+  </div>
+  <div class="card-container" id="stack-girl"></div>
+  <div class="controls" id="controls-girl">
+    <button class="btn-icon btn-red" onclick="swipe('girl', false)">✖</button>
+    <button class="btn-icon btn-green" onclick="swipe('girl', true)">✔</button>
+  </div>
+  <div class="overlay-done" id="overlay-girl">
+    <h2>Выбор завершен</h2>
+    <p>Ждем вторую половинку...</p>
+  </div>
+</div>
+
+<div id="result-screen">
+  <h2 style="text-align:center;margin-bottom:15px;color:var(--gold)">Меню на день</h2>
+  <div id="final-menu" style="flex:1; overflow-y:auto;"></div>
+  <button class="btn-close" onclick="downloadMenu()" style="background:var(--green); margin-bottom:10px;">💾 Скачать меню в файл</button>
+  <button class="btn-close" onclick="localStorage.removeItem('foodData'); location.reload()">Начать заново</button>
+</div>
+
+<script>
+// Локальная база с картинками из Unsplash (быстрые и надежные ссылки)
+const RECIPES = {
+  breakfast: [
+    {n:"Овсянка с бананом", img:"https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=500&q=80", i:["Овсянка 60г","Молоко 200мл","Банан"], s:["Сварить овсянку","Добавить нарезанный банан"]},
+    {n:"Омлет с помидорами", img:"https://images.unsplash.com/photo-1510693206972-df098062cb71?w=500&q=80", i:["Яйца 3шт","Помидор","Зелень"], s:["Взбить яйца","Обжарить помидор","Залить яйцами"]},
+    {n:"Творог с ягодами", img:"https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500&q=80", i:["Творог 150г","Ягоды 100г","Мёд"], s:["Смешать все ингредиенты"]},
+    {n:"Сырники", img:"https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80", i:["Творог 200г","Яйцо","Мука 40г","Сахар"], s:["Смешать","Обжарить с двух сторон"]},
+    {n:"Гречка с маслом", img:"https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=500&q=80", i:["Гречка 80г","Масло"], s:["Сварить гречку","Добавить масло"]},
+    {n:"Бутерброд с авокадо", img:"https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=500&q=80", i:["Хлеб","Авокадо","Яйцо"], s:["Размять авокадо на хлебе","Добавить яйцо"]},
+    {n:"Йогурт с мюсли", img:"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&q=80", i:["Йогурт 200г","Мюсли 40г"], s:["Смешать"]},
+    {n:"Овсяноблин с сыром", img:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=500&q=80", i:["Овсянка 40г","Яйцо","Сыр"], s:["Смешать и обжарить","Посыпать сыром"]},
+    {n:"Пшенка с тыквой", img:"https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?w=500&q=80", i:["Пшено 70г","Тыква 150г","Молоко"], s:["Варить 20 мин"]},
+    {n:"Тост с лососем", img:"https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500&q=80", i:["Хлеб","Творожный сыр","Лосось"], s:["Намазать сыр","Выложить рыбу"]},
+    {n:"Яичница с беконом", img:"https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=500&q=80", i:["Яйца 2шт","Бекон 40г"], s:["Обжарить бекон","Вбить яйца"]},
+    {n:"Оладьи на кефире", img:"https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80", i:["Кефир 200мл","Мука 150г","Яйцо"], s:["Замесить тесто","Жарить"]},
+    {n:"Рисовая каша с яблоком", img:"https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=500&q=80", i:["Рис 70г","Молоко","Яблоко"], s:["Сварить рис","Добавить яблоко"]},
+    {n:"Фруктовый салат", img:"https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500&q=80", i:["Банан","Яблоко","Апельсин"], s:["Нарезать и смешать"]},
+    {n:"Кукурузная каша", img:"https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=500&q=80", i:["Крупа 70г","Сыр 40г"], s:["Сварить","Посыпать сыром"]},
+    {n:"Яйца пашот", img:"https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500&q=80", i:["Яйца 2шт","Хлеб"], s:["Сварить пашот","Выложить на тост"]},
+    {n:"Творожная запеканка", img:"https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80", i:["Творог 300г","Яйца 2шт","Манка"], s:["Смешать","Запекать 30 мин"]},
+    {n:"Овсянка с яблоком", img:"https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=500&q=80", i:["Овсянка 60г","Яблоко"], s:["Сварить","Добавить тертое яблоко"]},
+    {n:"Бутерброд с паштетом", img:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=500&q=80", i:["Хлеб","Паштет","Огурец"], s:["Намазать паштет"]},
+    {n:"Овсянка с тыквой", img:"https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?w=500&q=80", i:["Овсянка 60г","Тыква 100г"], s:["Варить 12 мин"]},
+    {n:"Шакшука", img:"https://images.unsplash.com/photo-1510693206972-df098062cb71?w=500&q=80", i:["Яйца 2шт","Помидоры 2шт","Лук"], s:["Потушить овощи","Вбить яйца"]},
+    {n:"Тост с пастой", img:"https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500&q=80", i:["Хлеб","Арахисовая паста","Банан"], s:["Намазать","Выложить банан"]},
+    {n:"Гречка с молоком", img:"https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=500&q=80", i:["Гречка 70г","Молоко"], s:["Сварить","Залить молоком"]},
+    {n:"Яйцо с авокадо", img:"https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=500&q=80", i:["Яйца 2шт","Авокадо","Хлеб"], s:["Размять авокадо","Добавить яйца"]},
+    {n:"Мюсли с молоком", img:"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&q=80", i:["Мюсли 60г","Молоко"], s:["Залить молоком"]},
+    {n:"Блинчики с творогом", img:"https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80", i:["Мука 100г","Молоко","Творог"], s:["Испечь блины","Завернуть творог"]},
+    {n:"Омлет с сыром", img:"https://images.unsplash.com/photo-1510693206972-df098062cb71?w=500&q=80", i:["Яйца 3шт","Сыр","Шпинат"], s:["Взбить","Готовить 5 мин"]},
+    {n:"Творог с медом", img:"https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500&q=80", i:["Творог 150г","Мёд","Орехи"], s:["Смешать"]},
+    {n:"Овсянка с какао", img:"https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=500&q=80", i:["Овсянка 60г","Молоко","Какао"], s:["Варить 7 мин"]},
+    {n:"Тост с сыром", img:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=500&q=80", i:["Хлеб","Сыр"], s:["Подсушить хлеб","Расплавить сыр"]}
+  ],
+  main: [
+    {n:"Курица с гречкой", img:"https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80", i:["Грудка 150г","Гречка 80г"], s:["Отварить гречку","Обжарить курицу"]},
+    {n:"Борщ с говядиной", img:"https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=500&q=80", i:["Говядина","Свёкла","Капуста"], s:["Сварить бульон","Добавить овощи"]},
+    {n:"Паста с курицей", img:"https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=500&q=80", i:["Макароны 100г","Курица","Томаты"], s:["Сварить пасту","Обжарить курицу","Смешать"]},
+    {n:"Рыба с картофелем", img:"https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500&q=80", i:["Рыба 200г","Картофель 3шт"], s:["Отварить картофель","Обжарить рыбу"]},
+    {n:"Гречка с говядиной", img:"https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80", i:["Говядина 150г","Гречка"], s:["Потушить мясо","Смешать"]},
+    {n:"Салат с тунцом", img:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80", i:["Тунец 150г","Яйца 2шт","Салат"], s:["Нарезать","Смешать"]},
+    {n:"Куриный суп", img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=500&q=80", i:["Курица 200г","Лапша 50г","Морковь"], s:["Сварить курицу","Добавить овощи","Лапшу"]},
+    {n:"Плов с курицей", img:"https://images.unsplash.com/photo-1512058564366-18510be2db19?w=500&q=80", i:["Рис 100г","Курица 200г","Морковь"], s:["Обжарить","Тушить 25 мин"]},
+    {n:"Котлеты из индейки", img:"https://images.unsplash.com/photo-1529042410759-befb1204b468?w=500&q=80", i:["Фарш 200г","Яйцо","Лук"], s:["Слепить","Обжарить"]},
+    {n:"Ризотто с овощами", img:"https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=500&q=80", i:["Рис 100г","Бульон","Морковь"], s:["Тушить рис с бульоном"]},
+    {n:"Свинина с овощами", img:"https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80", i:["Свинина 150г","Кабачок","Перец"], s:["Обжарить мясо","Тушить с овощами"]},
+    {n:"Цезарь с курицей", img:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80", i:["Курица 150г","Романо","Хлеб"], s:["Обжарить курицу","Смешать"]},
+    {n:"Рагу с фасолью", img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=500&q=80", i:["Фасоль","Кабачок","Помидоры"], s:["Потушить 20 мин"]},
+    {n:"Макароны с брокколи", img:"https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=500&q=80", i:["Макароны","Брокколи","Сыр"], s:["Сварить","Смешать с сыром"]},
+    {n:"Куриные бёдра с овощами", img:"https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&q=80", i:["Бёдра 200г","Картофель"], s:["Запечь 40 мин"]},
+    {n:"Греческий салат", img:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80", i:["Огурец","Помидор","Фета"], s:["Нарезать","Заправить"]},
+    {n:"Суп-пюре из тыквы", img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=500&q=80", i:["Тыква 400г","Лук","Сливки"], s:["Сварить","Пюрировать"]},
+    {n:"Тефтели с рисом", img:"https://images.unsplash.com/photo-1529042410759-befb1204b468?w=500&q=80", i:["Фарш 200г","Рис 80г","Томаты"], s:["Слепить","Тушить"]},
+    {n:"Курица с рисом", img:"https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80", i:["Курица 150г","Рис 80г"], s:["Сварить рис","Обжарить курицу"]},
+    {n:"Салат с курицей", img:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80", i:["Курица","Авокадо","Помидор"], s:["Смешать"]},
+    {n:"Щи из капусты", img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=500&q=80", i:["Капуста 200г","Картофель","Курица"], s:["Сварить"]},
+    {n:"Фаршированные перцы", img:"https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=500&q=80", i:["Перец 2шт","Фарш","Рис"], s:["Нафаршировать","Тушить"]},
+    {n:"Рыбные котлеты", img:"https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500&q=80", i:["Рыбный фарш","Яйцо","Лук"], s:["Слепить","Обжарить"]},
+    {n:"Пельмени", img:"https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=500&q=80", i:["Мука","Фарш","Лук"], s:["Слепить","Сварить"]},
+    {n:"Курица в кляре", img:"https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&q=80", i:["Курица","Яйцо","Мука"], s:["Обвалять","Обжарить"]},
+    {n:"Оливье", img:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80", i:["Картофель","Морковь","Колбаса"], s:["Сварить","Нарезать"]},
+    {n:"Лазанья", img:"https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=500&q=80", i:["Листы","Фарш","Томаты"], s:["Слоями","Запекать"]},
+    {n:"Овощи гриль", img:"https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=500&q=80", i:["Кабачок","Перец","Баклажан"], s:["Обжарить на гриле"]},
+    {n:"Уха", img:"https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500&q=80", i:["Рыба 200г","Картофель"], s:["Сварить"]},
+    {n:"Куриное филе с овощами", img:"https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80", i:["Филе 150г","Перец","Кабачок"], s:["Обжарить","Потушить"]}
+  ],
+  snack: [
+    {n:"Яблоко", img:"https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=500&q=80", i:["Яблоко"], s:["Помыть и съесть"]},
+    {n:"Банан", img:"https://images.unsplash.com/photo-1571771894821-aa55a5d2925a?w=500&q=80", i:["Банан"], s:["Очистить"]},
+    {n:"Горсть орехов", img:"https://images.unsplash.com/photo-1599599810694-b5b37304c041?w=500&q=80", i:["Орехи 30г"], s:["Съесть"]},
+    {n:"Йогурт", img:"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&q=80", i:["Йогурт 150г"], s:["Открыть"]},
+    {n:"Творожок", img:"https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500&q=80", i:["Творог 100г"], s:["Съесть"]},
+    {n:"Апельсин", img:"https://images.unsplash.com/photo-1582979512210-99b6a53386f9?w=500&q=80", i:["Апельсин"], s:["Почистить"]},
+    {n:"Морковные палочки", img:"https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=500&q=80", i:["Морковь"], s:["Порезать"]},
+    {n:"Хлебец с сыром", img:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=500&q=80", i:["Хлебец","Сыр"], s:["Положить сыр"]},
+    {n:"Протеиновый батончик", img:"https://images.unsplash.com/photo-1622484211148-716c5865c0ea?w=500&q=80", i:["Батончик"], s:["Съесть"]},
+    {n:"Стакан кефира", img:"https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&q=80", i:["Кефир 200мл"], s:["Выпить"]},
+    {n:"Груша", img:"https://images.unsplash.com/photo-1514756331096-242fdeb70d4a?w=500&q=80", i:["Груша"], s:["Съесть"]},
+    {n:"Печенье овсяное", img:"https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=500&q=80", i:["Печенье 2шт"], s:["Съесть"]},
+    {n:"Виноград", img:"https://images.unsplash.com/photo-1596363505729-4190a9506133?w=500&q=80", i:["Виноград 100г"], s:["Помыть"]},
+    {n:"Тост с медом", img:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=500&q=80", i:["Хлеб","Мёд"], s:["Намазать"]},
+    {n:"Сельдерей", img:"https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=500&q=80", i:["Сельдерей"], s:["Порезать"]},
+    {n:"Яйцо вареное", img:"https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500&q=80", i:["Яйцо"], s:["Сварить"]},
+    {n:"Клубника", img:"https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=500&q=80", i:["Клубника 100г"], s:["Помыть"]},
+    {n:"Курага", img:"https://images.unsplash.com/photo-1595475207225-428b62bda831?w=500&q=80", i:["Курага 30г"], s:["Съесть"]},
+    {n:"Сэндвич с индейкой", img:"https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&q=80", i:["Хлеб","Индейка","Салат"], s:["Собрать"]},
+    {n:"Авокадо", img:"https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=500&q=80", i:["Авокадо"], s:["Порезать"]},
+    {n:"Смузи", img:"https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500&q=80", i:["Банан","Молоко"], s:["Взбить"]},
+    {n:"Черный шоколад", img:"https://images.unsplash.com/photo-1511381939415-e44015466834?w=500&q=80", i:["Шоколад 20г"], s:["Съесть"]},
+    {n:"Огурец", img:"https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=500&q=80", i:["Огурец"], s:["Порезать"]},
+    {n:"Рисовые хлебцы", img:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=500&q=80", i:["Хлебцы"], s:["Съесть"]},
+    {n:"Киви", img:"https://images.unsplash.com/photo-1585059895524-72359e06133a?w=500&q=80", i:["Киви 2шт"], s:["Почистить"]},
+    {n:"Молоко", img:"https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&q=80", i:["Молоко 200мл"], s:["Выпить"]},
+    {n:"Помидорки черри", img:"https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&q=80", i:["Помидоры 100г"], s:["Помыть"]},
+    {n:"Тост с авокадо", img:"https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=500&q=80", i:["Хлеб","Авокадо"], s:["Размять на хлебе"]},
+    {n:"Сырники (1 шт)", img:"https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80", i:["Творог","Мука"], s:["Обжарить"]},
+    {n:"Яблоко с корицей", img:"https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=500&q=80", i:["Яблоко","Корица"], s:["Нарезать","Посыпать"]}
+  ]
+};
+
+const SCHEDULE = ['Завтрак', 'Перекус 1', 'Обед', 'Перекус 2', 'Ужин', 'Перекус 3 (на ночь)'];
+
+let state = {
+  guy: { step: 0, approved: [], queue: [], isDone: false },
+  girl: { step: 0, approved: [], queue: [], isDone: false }
+};
+
+function getQueueForStep(step) {
+  let pool = [];
+  if (step === 0) pool = [...RECIPES.breakfast]; 
+  else if (step === 2 || step === 4) pool = [...RECIPES.main]; 
+  else pool = [...RECIPES.snack]; 
+  return pool.sort(() => 0.5 - Math.random());
+}
+
+function initQueues() {
+  state.guy.queue = getQueueForStep(0);
+  state.girl.queue = getQueueForStep(0);
+  renderCards('guy');
+  renderCards('girl');
+}
+
+function renderCards(who) {
+  const container = document.getElementById('stack-' + who);
+  container.innerHTML = '';
+  
+  if (state[who].isDone) return;
+
+  document.getElementById('step-' + who).innerText = SCHEDULE[state[who].step] || 'Готово';
+
+  const queue = state[who].queue;
+  if (queue.length === 0) {
+    container.innerHTML = '<div style="color:#7f8c8d;font-size:0.9rem;text-align:center">Варианты закончились</div>';
+    return;
+  }
+
+  const slice = queue.slice(0, 2).reverse();
+  
+  slice.forEach((meal, index) => {
+    const isTop = index === slice.length - 1;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.zIndex = isTop ? 10 : 5;
+    if (!isTop) card.style.transform = 'scale(0.95) translateY(10px)';
+    
+    card.innerHTML = `
+      <img src="${meal.img}" alt="food">
+      <div class="card-info">
+        <div class="card-title">${meal.n}</div>
+        <div class="card-meta">${meal.i.length} ингредиентов</div>
+      </div>
+      <div class="stamp yes">БЕРУ</div>
+      <div class="stamp no">ПАС</div>
+    `;
+    
+    if (isTop) attachSwipeLogic(card, who);
+    container.appendChild(card);
+  });
+}
+
+function attachSwipeLogic(card, who) {
+  let startX = 0, currentX = 0, isDragging = false;
+  const stampYes = card.querySelector('.stamp.yes');
+  const stampNo = card.querySelector('.stamp.no');
+
+  card.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+    card.style.transition = 'none';
+  });
+
+  card.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    currentX = e.touches[0].clientX - startX;
+    card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.1}deg)`;
+    
+    if (currentX > 50) { stampYes.style.opacity = 1; stampNo.style.opacity = 0; }
+    else if (currentX < -50) { stampNo.style.opacity = 1; stampYes.style.opacity = 0; }
+    else { stampYes.style.opacity = 0; stampNo.style.opacity = 0; }
+  });
+
+  card.addEventListener('touchend', () => {
+    isDragging = false;
+    card.style.transition = 'transform 0.3s';
+    if (currentX > 80) swipe(who, true);
+    else if (currentX < -80) swipe(who, false);
+    else { 
+      card.style.transform = 'translateX(0) rotate(0)'; 
+      stampYes.style.opacity = 0; stampNo.style.opacity = 0;
+    }
+  });
+}
+
+function swipe(who, isYes) {
+  if (state[who].isDone) return;
+
+  const topCard = document.querySelector('#stack-' + who + ' .card:last-child');
+  if (!topCard) return;
+  
+  topCard.style.transition = 'transform 0.4s ease-out';
+  topCard.style.transform = `translateX(${isYes ? 500 : -500}px) rotate(${isYes ? 30 : -30}deg)`;
+  
+  if (isYes) {
+    const meal = state[who].queue[0];
+    meal.mealTime = SCHEDULE[state[who].step];
+    state[who].approved.push(meal);
+    
+    setTimeout(() => {
+      state[who].queue.shift(); 
+      state[who].step++;
+      
+      if (state[who].step >= 6) {
+        checkSideDone(who);
+      } else {
+        state[who].queue = getQueueForStep(state[who].step);
+        renderCards(who);
+        saveState();
+      }
+    }, 300);
+  } else {
+    setTimeout(() => {
+      state[who].queue.shift();
+      renderCards(who);
+      saveState();
+    }, 300);
+  }
+}
+
+function checkSideDone(who) {
+  state[who].isDone = true;
+  document.getElementById('stack-' + who).innerHTML = '';
+  document.getElementById('controls-' + who).style.display = 'none';
+  document.getElementById('overlay-' + who).style.display = 'flex';
+  document.getElementById('zone-' + who).style.opacity = '0.5';
+  
+  saveState();
+
+  if (state.guy.isDone && state.girl.isDone) {
+    showResult();
+  }
+}
+
+async function showResult() {
+  const resultScreen = document.getElementById('result-screen');
+  const menuContainer = document.getElementById('final-menu');
+  resultScreen.style.display = 'flex';
+  menuContainer.innerHTML = '';
+
+  const allPicks = [...state.guy.approved, ...state.girl.approved];
+  const shoppingList = {};
+  allPicks.forEach(meal => {
+    meal.i.forEach(ing => {
+      const ingName = ing.toLowerCase();
+      if (!shoppingList[ingName]) shoppingList[ingName] = 1;
+      else shoppingList[ingName]++;
+    });
+  });
+
+  let html = '<h3 style="color:var(--accent);margin:10px 0 15px;">📋 Список покупок (на двоих)</h3>';
+  html += '<ul style="font-size:0.85rem;color:#34495e;margin-bottom:20px;padding-left:20px;columns:2;column-gap:15px;">';
+  for (const [ing, count] of Object.entries(shoppingList)) {
+    const cleanIng = ing.charAt(0).toUpperCase() + ing.slice(1);
+    html += `<li style="break-inside:avoid;margin-bottom:4px;">${cleanIng} ${count > 1 ? '(' + count + ' шт)' : ''}</li>`;
+  }
+  html += '</ul>';
+
+  html += '<h3 style="color:var(--accent);margin:10px 0 15px;">🍳 Расписание на день</h3>';
+  const renderPerson = (personData, personName) => {
+    let pHTML = `<h4 style="margin:10px 0;color:var(--txt)">${personName}</h4>`;
+    personData.forEach((meal) => {
+      pHTML += `
+        <div class="recipe-block">
+          <div class="recipe-title">${meal.mealTime}: ${meal.n}</div>
+          <div class="recipe-ing"><b>Ингредиенты:</b><br>${meal.i.map(i => `• ${i}`).join('<br>')}</div>
+          <div class="recipe-steps"><b>Приготовление:</b><br>${meal.s.join('<br>')}</div>
+        </div>
+      `;
+    });
+    return pHTML;
+  };
+
+  html += renderPerson(state.guy.approved, '👨 Меню парня');
+  html += renderPerson(state.girl.approved, '👩 Меню девушки');
+  menuContainer.innerHTML = html;
+}
+
+function downloadMenu() {
+  let text = "=== МЕНЮ НА ДЕНЬ ===\n\n";
+  const allPicks = [...state.guy.approved, ...state.girl.approved];
+  const shoppingList = {};
+  allPicks.forEach(meal => {
+    meal.i.forEach(ing => {
+      const ingName = ing.toLowerCase();
+      if (!shoppingList[ingName]) shoppingList[ingName] = 1;
+      else shoppingList[ingName]++;
+    });
+  });
+  
+  text += "--- СПИСОК ПОКУПОК ---\n";
+  for (const [ing, count] of Object.entries(shoppingList)) {
+    text += `- ${ing} ${count > 1 ? '(' + count + ' шт)' : ''}\n`;
+  }
+  
+  text += "\n\n--- РЕЦЕПТЫ ПАРНЯ ---\n";
+  state.guy.approved.forEach((meal) => {
+    text += `\n[${meal.mealTime}] ${meal.n}\nИнгредиенты:\n${meal.i.map(i => `- ${i}`).join('\n')}\nПриготовление:\n${meal.s.join('\n')}\n-----------------------------------\n`;
+  });
+
+  text += "\n\n--- РЕЦЕПТЫ ДЕВУШКИ ---\n";
+  state.girl.approved.forEach((meal) => {
+    text += `\n[${meal.mealTime}] ${meal.n}\nИнгредиенты:\n${meal.i.map(i => `- ${i}`).join('\n')}\nПриготовление:\n${meal.s.join('\n')}\n-----------------------------------\n`;
+  });
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Меню_на_день.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function saveState() {
+  localStorage.setItem('foodData', JSON.stringify(state));
+}
+
+if (localStorage.getItem('foodData')) {
+  state = JSON.parse(localStorage.getItem('foodData'));
+  
+  if (state.guy.isDone) {
+    document.getElementById('stack-guy').innerHTML = '';
+    document.getElementById('controls-guy').style.display = 'none';
+    document.getElementById('overlay-guy').style.display = 'flex';
+    document.getElementById('zone-guy').style.opacity = '0.5';
+  } else { renderCards('guy'); }
+  
+  if (state.girl.isDone) {
+    document.getElementById('stack-girl').innerHTML = '';
+    document.getElementById('controls-girl').style.display = 'none';
+    document.getElementById('overlay-girl').style.display = 'flex';
+    document.getElementById('zone-girl').style.opacity = '0.5';
+  } else { renderCards('girl'); }
+  
+  if (state.guy.isDone && state.girl.isDone) {
+    showResult();
+  }
+} else {
+  initQueues();
+}
+</script>
+</body>
+</html>
